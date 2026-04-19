@@ -71,6 +71,18 @@ Health check path: /health
 
 Render will provide `PORT` automatically.
 
+## Render Room Lifetime
+
+Room state is kept in the Node server process. Empty rooms stay available for 30 minutes by default, so a short reconnect or refresh does not immediately destroy the room code.
+
+You can change that grace period on Render with an environment variable:
+
+```text
+EMPTY_ROOM_TTL_MS=1800000
+```
+
+For production, move room state into Redis or a database. In-memory rooms still disappear if Render restarts the service or moves the process.
+
 ## How The Control Flow Works
 
 1. Participant clicks `Request control`.

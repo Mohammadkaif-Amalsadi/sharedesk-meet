@@ -6,12 +6,15 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
+  pingInterval: 25000,
+  pingTimeout: 60000,
   cors: {
     origin: process.env.CORS_ORIGIN || "*"
   }
 });
 
 const PORT = process.env.PORT || 3000;
+const EMPTY_ROOM_TTL_MS = Number(process.env.EMPTY_ROOM_TTL_MS || 30 * 60 * 1000);
 const rooms = new Map();
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -24,14 +27,40 @@ function getRoom(roomId) {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, {
       hostId: null,
+      hostName: null,
       sessionStartAt: null,
       participants: new Map(),
       controlPermissions: new Map(),
-      screenSharers: new Set()
+      screenSharers: new Set(),
+      cleanupTimer: null,
+      createdAt: Date.now()
     });
   }
 
   return rooms.get(roomId);
+}
+
+function scheduleRoomCleanup(roomId) {
+  const room = rooms.get(roomId);
+  if (!room || room.cleanupTimer) {
+    return;
+  }
+
+  room.cleanupTimer = setTimeout(() => {
+    const latestRoom = rooms.get(roomId);
+    if (latestRoom?.participants.size === 0) {
+      rooms.delete(roomId);
+    }
+  }, EMPTY_ROOM_TTL_MS);
+}
+
+function cancelRoomCleanup(room) {
+  if (!room?.cleanupTimer) {
+    return;
+  }
+
+  clearTimeout(room.cleanupTimer);
+  room.cleanupTimer = null;
 }
 
 function publicParticipants(room) {
@@ -105,15 +134,19 @@ io.on("connection", (socket) => {
     }
 
     const room = getRoom(cleanRoomId);
+    cancelRoomCleanup(room);
     socket.join(cleanRoomId);
     socket.data.roomId = cleanRoomId;
     socket.data.name = cleanName;
 
-    if (!room.hostId) {
+    if (!room.hostId && (!room.hostName || room.hostName === cleanName || mode === "host")) {
       room.hostId = socket.id;
-      room.sessionStartAt = Number.isFinite(Number(sessionStartAt))
-        ? Number(sessionStartAt)
-        : Date.now();
+      room.hostName = cleanName;
+      if (!room.sessionStartAt) {
+        room.sessionStartAt = Number.isFinite(Number(sessionStartAt))
+          ? Number(sessionStartAt)
+          : Date.now();
+      }
     }
 
     room.participants.set(socket.id, { name: cleanName, joinedAt: Date.now() });
@@ -239,6 +272,7 @@ io.on("connection", (socket) => {
     if (room.hostId === socket.id) {
       const nextHostId = room.participants.keys().next().value || null;
       room.hostId = nextHostId;
+      room.hostName = nextHostId ? room.participants.get(nextHostId)?.name : room.hostName;
 
       if (nextHostId) {
         room.controlPermissions.set(nextHostId, fullControlPermissions());
@@ -247,7 +281,9 @@ io.on("connection", (socket) => {
     }
 
     if (room.participants.size === 0) {
-      rooms.delete(roomId);
+      room.hostId = null;
+      room.screenSharers.clear();
+      scheduleRoomCleanup(roomId);
       return;
     }
 
