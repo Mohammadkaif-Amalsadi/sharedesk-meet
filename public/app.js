@@ -156,6 +156,7 @@ function sortQuotes(items) {
 
 function quoteCard(quote) {
   const tone = quote.changePercent >= 0 ? "gain" : "loss";
+  const chartUrl = tradingViewUrl(quote);
 
   return `
     <article class="quote-card ${tone}">
@@ -168,6 +169,7 @@ function quoteCard(quote) {
         <strong>${formatPrice(quote.price)}</strong>
         <span>${formatPercent(quote.changePercent)}</span>
       </div>
+      <a class="chart-link" href="${chartUrl}" target="_blank" rel="noreferrer" aria-label="Open ${quote.pair} chart on TradingView">[ ]</a>
     </article>
   `;
 }
@@ -240,6 +242,10 @@ function formatTime(value) {
     minute: "2-digit",
     second: "2-digit"
   }).format(new Date(value));
+}
+
+function tradingViewUrl(quote) {
+  return `https://www.tradingview.com/chart/?symbol=FX:${quote.base}${quote.quote}`;
 }
 
 function emptyCard(message) {

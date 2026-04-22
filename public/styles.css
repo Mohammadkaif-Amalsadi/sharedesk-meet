@@ -225,7 +225,7 @@ h2 {
 
 .quote-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   border: 1px solid var(--line);
@@ -249,6 +249,23 @@ h2 {
 
 .quote-price {
   text-align: right;
+}
+
+.chart-link {
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.chart-link:hover {
+  border-color: var(--blue);
+  color: var(--blue);
 }
 
 .quote-price span,
@@ -358,7 +375,8 @@ th {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .quote-price {
+  .quote-price,
+  .chart-link {
     grid-column: 1 / -1;
     text-align: left;
   }
