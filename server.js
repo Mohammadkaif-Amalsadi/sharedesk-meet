@@ -3,79 +3,43 @@ const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const QUOTE_CACHE_MS = Number(process.env.QUOTE_CACHE_MS || 15000);
+const QUOTE_CACHE_MS = Number(process.env.QUOTE_CACHE_MS || 5 * 60 * 1000);
 
 const DEFAULT_SYMBOLS = [
-  "EURUSD=X",
-  "GBPUSD=X",
-  "JPY=X",
-  "AUDUSD=X",
-  "NZDUSD=X",
-  "CAD=X",
-  "CHF=X",
-  "EURGBP=X",
-  "EURJPY=X",
-  "GBPJPY=X",
-  "AUDJPY=X",
-  "EURAUD=X",
-  "EURCAD=X",
-  "EURCHF=X",
-  "GBPAUD=X",
-  "GBPCAD=X",
-  "GBPCHF=X",
-  "AUDCAD=X",
-  "AUDNZD=X",
-  "AUDCHF=X",
-  "NZDJPY=X",
-  "NZDCAD=X",
-  "CADJPY=X",
-  "CHFJPY=X",
-  "USDMXN=X",
-  "USDZAR=X",
-  "USDTRY=X",
-  "USDSGD=X",
-  "USDHKD=X",
-  "USDNOK=X",
-  "USDSEK=X",
-  "USDDKK=X",
-  "USDPLN=X"
+  "EUR/USD",
+  "GBP/USD",
+  "USD/JPY",
+  "AUD/USD",
+  "NZD/USD",
+  "USD/CAD",
+  "USD/CHF",
+  "EUR/GBP",
+  "EUR/JPY",
+  "GBP/JPY",
+  "AUD/JPY",
+  "EUR/AUD",
+  "EUR/CAD",
+  "EUR/CHF",
+  "GBP/AUD",
+  "GBP/CAD",
+  "GBP/CHF",
+  "AUD/CAD",
+  "AUD/NZD",
+  "AUD/CHF",
+  "NZD/JPY",
+  "NZD/CAD",
+  "CAD/JPY",
+  "CHF/JPY",
+  "USD/MXN",
+  "USD/ZAR",
+  "USD/TRY",
+  "USD/SGD",
+  "USD/HKD",
+  "USD/NOK",
+  "USD/SEK",
+  "USD/DKK",
+  "USD/PLN"
 ];
-
-const SYMBOL_META = {
-  "EURUSD=X": ["EUR", "USD", "EUR/USD"],
-  "GBPUSD=X": ["GBP", "USD", "GBP/USD"],
-  "JPY=X": ["USD", "JPY", "USD/JPY"],
-  "AUDUSD=X": ["AUD", "USD", "AUD/USD"],
-  "NZDUSD=X": ["NZD", "USD", "NZD/USD"],
-  "CAD=X": ["USD", "CAD", "USD/CAD"],
-  "CHF=X": ["USD", "CHF", "USD/CHF"],
-  "EURGBP=X": ["EUR", "GBP", "EUR/GBP"],
-  "EURJPY=X": ["EUR", "JPY", "EUR/JPY"],
-  "GBPJPY=X": ["GBP", "JPY", "GBP/JPY"],
-  "AUDJPY=X": ["AUD", "JPY", "AUD/JPY"],
-  "EURAUD=X": ["EUR", "AUD", "EUR/AUD"],
-  "EURCAD=X": ["EUR", "CAD", "EUR/CAD"],
-  "EURCHF=X": ["EUR", "CHF", "EUR/CHF"],
-  "GBPAUD=X": ["GBP", "AUD", "GBP/AUD"],
-  "GBPCAD=X": ["GBP", "CAD", "GBP/CAD"],
-  "GBPCHF=X": ["GBP", "CHF", "GBP/CHF"],
-  "AUDCAD=X": ["AUD", "CAD", "AUD/CAD"],
-  "AUDNZD=X": ["AUD", "NZD", "AUD/NZD"],
-  "AUDCHF=X": ["AUD", "CHF", "AUD/CHF"],
-  "NZDJPY=X": ["NZD", "JPY", "NZD/JPY"],
-  "NZDCAD=X": ["NZD", "CAD", "NZD/CAD"],
-  "CADJPY=X": ["CAD", "JPY", "CAD/JPY"],
-  "CHFJPY=X": ["CHF", "JPY", "CHF/JPY"],
-  "USDMXN=X": ["USD", "MXN", "USD/MXN"],
-  "USDZAR=X": ["USD", "ZAR", "USD/ZAR"],
-  "USDTRY=X": ["USD", "TRY", "USD/TRY"],
-  "USDSGD=X": ["USD", "SGD", "USD/SGD"],
-  "USDHKD=X": ["USD", "HKD", "USD/HKD"],
-  "USDNOK=X": ["USD", "NOK", "USD/NOK"],
-  "USDSEK=X": ["USD", "SEK", "USD/SEK"],
-  "USDDKK=X": ["USD", "DKK", "USD/DKK"],
-  "USDPLN=X": ["USD", "PLN", "USD/PLN"]
-};
 
 let cache = {
   timestamp: 0,
@@ -92,7 +56,7 @@ app.get("/api/forex", async (req, res) => {
   try {
     const requestedSymbols = String(req.query.symbols || "")
       .split(",")
-      .map((symbol) => symbol.trim().toUpperCase())
+      .map((symbol) => normalizePair(symbol.trim()))
       .filter(Boolean);
 
     const symbols = requestedSymbols.length ? requestedSymbols : DEFAULT_SYMBOLS;
@@ -113,46 +77,17 @@ async function getForexQuotes(symbols) {
     return cache.data;
   }
 
-  const url = new URL("https://query1.finance.yahoo.com/v7/finance/quote");
-  url.searchParams.set("symbols", symbols.join(","));
-  url.searchParams.set("fields", [
-    "symbol",
-    "shortName",
-    "regularMarketPrice",
-    "regularMarketChange",
-    "regularMarketChangePercent",
-    "regularMarketPreviousClose",
-    "regularMarketOpen",
-    "regularMarketDayHigh",
-    "regularMarketDayLow",
-    "regularMarketTime",
-    "marketState",
-    "bid",
-    "ask"
-  ].join(","));
-
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 ShareDesk-Forex-Dashboard"
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Yahoo Finance responded with ${response.status}`);
-  }
-
-  const payload = await response.json();
-  const quotes = (payload.quoteResponse?.result || [])
-    .map(normalizeQuote)
+  const quotes = await Promise.all(symbols.map(fetchFxapiPair));
+  const validQuotes = quotes
     .filter((quote) => Number.isFinite(quote.price));
 
   const data = {
-    source: "Yahoo Finance",
-    sourceUrl: "https://finance.yahoo.com/markets/currencies/",
+    source: "fxapi.app",
+    sourceUrl: "https://fxapi.app/",
     fetchedAt: new Date().toISOString(),
     refreshMs: QUOTE_CACHE_MS,
-    count: quotes.length,
-    quotes
+    count: validQuotes.length,
+    quotes: validQuotes
   };
 
   cache = {
@@ -163,38 +98,78 @@ async function getForexQuotes(symbols) {
   return data;
 }
 
-function normalizeQuote(quote) {
-  const [base, quoteCurrency, displayPair] = SYMBOL_META[quote.symbol] || inferPair(quote.symbol);
+async function fetchFxapiPair(pair) {
+  const [base, quoteCurrency] = pair.split("/");
+  const currentUrl = `https://fxapi.app/api/${base}/${quoteCurrency}.json`;
+  const previousUrl = previousReferenceUrl(base, quoteCurrency);
+
+  const [current, previous] = await Promise.all([
+    fetchJson(currentUrl),
+    fetchJson(previousUrl).catch(() => null)
+  ]);
+
+  const price = numberOrNull(current.rate);
+  const open = numberOrNull(previous?.stats?.open ?? previous?.rate);
+  const previousClose = open;
+  const high = numberOrNull(previous?.stats?.high);
+  const low = numberOrNull(previous?.stats?.low);
+  const change = Number.isFinite(price) && Number.isFinite(previousClose)
+    ? price - previousClose
+    : null;
+  const changePercent = Number.isFinite(change) && previousClose
+    ? (change / previousClose) * 100
+    : null;
 
   return {
-    symbol: quote.symbol,
-    pair: displayPair,
+    symbol: pair.replace("/", ""),
+    pair,
     base,
     quote: quoteCurrency,
-    name: quote.shortName || displayPair,
-    price: numberOrNull(quote.regularMarketPrice),
-    change: numberOrNull(quote.regularMarketChange),
-    changePercent: numberOrNull(quote.regularMarketChangePercent),
-    previousClose: numberOrNull(quote.regularMarketPreviousClose),
-    open: numberOrNull(quote.regularMarketOpen),
-    high: numberOrNull(quote.regularMarketDayHigh),
-    low: numberOrNull(quote.regularMarketDayLow),
-    bid: numberOrNull(quote.bid),
-    ask: numberOrNull(quote.ask),
-    marketState: quote.marketState || "UNKNOWN",
-    marketTime: quote.regularMarketTime
-      ? new Date(quote.regularMarketTime * 1000).toISOString()
-      : null
+    name: `${base} to ${quoteCurrency}`,
+    price,
+    change,
+    changePercent,
+    previousClose,
+    open,
+    high,
+    low,
+    bid: null,
+    ask: null,
+    marketState: "LIVE",
+    marketTime: current.timestamp || null
   };
 }
 
-function inferPair(symbol) {
-  const clean = symbol.replace("=X", "");
-  if (clean.length === 6) {
-    return [clean.slice(0, 3), clean.slice(3), `${clean.slice(0, 3)}/${clean.slice(3)}`];
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Forex-Movers-Dashboard/1.0"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`fxapi.app responded with ${response.status}`);
   }
 
-  return [clean, "", clean];
+  return response.json();
+}
+
+function previousReferenceUrl(base, quoteCurrency) {
+  const today = new Date();
+  const previous = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 2));
+  const from = previous.toISOString().slice(0, 10);
+  const to = today.toISOString().slice(0, 10);
+  return `https://fxapi.app/api/history/${base}/${quoteCurrency}.json?from=${from}&to=${to}`;
+}
+
+function normalizePair(symbol) {
+  const clean = symbol.replace("=X", "").replace("/", "").toUpperCase();
+  if (clean.length !== 6) {
+    return "";
+  }
+
+  return `${clean.slice(0, 3)}/${clean.slice(3)}`;
 }
 
 function numberOrNull(value) {

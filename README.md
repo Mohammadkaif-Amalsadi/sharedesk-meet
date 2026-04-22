@@ -4,15 +4,17 @@ A Render-ready forex dashboard that shows top gaining and losing currency pairs 
 
 ## Data Source
 
-The app fetches currency quotes server-side from Yahoo Finance's currency market data endpoint and refreshes the dashboard every 15 seconds by default.
+The app fetches currency quotes server-side from `fxapi.app` and refreshes the dashboard every 5 minutes by default.
 
 Source page:
 
 ```text
-https://finance.yahoo.com/markets/currencies/
+https://fxapi.app/
 ```
 
-Yahoo Finance quotes may be real-time or delayed depending on the instrument, exchange, and region. For institutional-grade real-time FX, connect a paid provider such as Alpha Vantage premium, Twelve Data, Polygon, OANDA, or a broker feed.
+`fxapi.app` provides no-key JSON currency rates and states that rates are updated every 5 minutes from central bank and financial data sources. The dashboard computes pair movement by comparing the latest rate with recent historical/reference rates from the same provider.
+
+For institutional-grade tick-by-tick FX, connect a paid provider such as Twelve Data Forex API v2, Finnhub, OANDA, Polygon, or a broker feed.
 
 ## Features
 
@@ -23,7 +25,7 @@ Yahoo Finance quotes may be real-time or delayed depending on the instrument, ex
 - Adjustable row limit
 - Auto refresh toggle
 - Server-side quote proxy to avoid browser CORS issues
-- 15-second quote cache to reduce provider load
+- 5-minute quote cache to match the no-key provider update cadence
 - Render-ready `render.yaml`
 
 ## Run Locally
@@ -71,7 +73,7 @@ Render provides `PORT` automatically.
 Optional cache interval:
 
 ```text
-QUOTE_CACHE_MS=15000
+QUOTE_CACHE_MS=300000
 ```
 
 Lower values refresh more aggressively. Higher values reduce upstream requests.

@@ -186,8 +186,8 @@ function tableRow(quote) {
       <td>${formatPrice(quote.price)}</td>
       <td class="${tone}">${formatSigned(quote.change)}</td>
       <td class="${tone}">${formatPercent(quote.changePercent)}</td>
-      <td>${formatPrice(quote.bid)}</td>
-      <td>${formatPrice(quote.ask)}</td>
+      <td>${formatPrice(quote.previousClose)}</td>
+      <td>${formatPrice(quote.open)}</td>
       <td>${formatPrice(quote.low)} - ${formatPrice(quote.high)}</td>
       <td>${quote.marketState || "UNKNOWN"}</td>
     </tr>
