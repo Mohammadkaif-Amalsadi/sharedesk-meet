@@ -1,7 +1,7 @@
 {
-  "name": "sharedesk-meet",
+  "name": "forex-movers-dashboard",
   "version": "1.0.0",
-  "description": "A Render-ready WebRTC meeting app with host-approved shared-screen interaction events.",
+  "description": "A Render-ready forex movers dashboard for top gaining and losing currency pairs.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,7 +12,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "express": "^4.18.3",
-    "socket.io": "^4.7.5"
+    "express": "^4.18.3"
   }
 }

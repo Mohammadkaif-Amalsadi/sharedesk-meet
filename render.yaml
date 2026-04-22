@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sharedesk-meet
+    name: forex-movers-dashboard
     env: node
     plan: free
     buildCommand: npm install

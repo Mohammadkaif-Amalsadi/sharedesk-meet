@@ -3,149 +3,116 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ShareDesk Meet</title>
+    <title>Forex Movers</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section id="welcome" class="welcome">
-        <div class="welcome-copy">
-          <p class="eyebrow">ShareDesk Meet</p>
-          <h1>Start clean, share clearly, and hand over only the controls you trust.</h1>
-          <p class="lede">
-            Host with a generated code or join with one. Share screens, pass limited controls, and keep everyone easy to follow.
-          </p>
-          <img
-            class="home-visual"
-            src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80"
-            alt="Laptop open for a video collaboration session"
-          />
-          <div id="homeActions" class="home-actions">
-            <button id="showHostBtn" type="button">Host meeting</button>
-            <button id="showJoinBtn" type="button" class="secondary">Join meeting</button>
-          </div>
+      <section class="dashboard-header">
+        <div>
+          <p class="eyebrow">Forex Movers</p>
+          <h1>Top gaining and losing currency pairs.</h1>
+          <p class="lede">Live market snapshots, sorted the way you trade them.</p>
         </div>
-
-        <form id="hostForm" class="join-panel hidden">
-          <div class="panel-heading">
-            <p class="eyebrow">Host</p>
-            <h2>Create a room</h2>
-          </div>
-          <label>
-            Your name
-            <input id="hostNameInput" name="hostName" autocomplete="name" placeholder="Amina" required />
-          </label>
-          <label>
-            Room code
-            <input id="hostRoomInput" name="hostRoom" autocomplete="off" readonly />
-          </label>
-          <label class="mode-row">
-            <input id="delayedStartInput" type="checkbox" />
-            Start after 15 minutes
-          </label>
-          <button type="submit">Initialize session</button>
-          <button id="hostBackBtn" type="button" class="secondary">Back</button>
-          <p id="hostStartNote" class="form-note">Session starts immediately unless delayed.</p>
-        </form>
-
-        <form id="joinForm" class="join-panel hidden">
-          <div class="panel-heading">
-            <p class="eyebrow">Join</p>
-            <h2>Enter a room</h2>
-          </div>
-          <label>
-            Your name
-            <input id="nameInput" name="name" autocomplete="name" placeholder="Amina" required />
-          </label>
-          <label>
-            Room code
-            <input id="roomInput" name="room" autocomplete="off" placeholder="design-sync" required />
-          </label>
-          <button type="submit">Join room</button>
-          <button id="joinBackBtn" type="button" class="secondary">Back</button>
-          <p class="form-note">Ask the host for the generated code.</p>
-        </form>
-        <p id="homeMessage" class="home-message" role="status"></p>
+        <div class="source-card">
+          <span id="sourceName">Source loading</span>
+          <strong id="lastUpdated">--</strong>
+          <a id="sourceLink" href="https://finance.yahoo.com/markets/currencies/" target="_blank" rel="noreferrer">View source</a>
+        </div>
       </section>
 
-      <section id="meeting" class="meeting hidden" aria-live="polite">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Room</p>
-            <h2 id="roomTitle">Meeting</h2>
-            <p id="startStatus" class="start-status">Session ready</p>
+      <section class="toolbar" aria-label="Dashboard controls">
+        <label>
+          Search
+          <input id="searchInput" type="search" placeholder="EUR, USD/JPY, GBP..." autocomplete="off" />
+        </label>
+        <label>
+          Sort by
+          <select id="sortSelect">
+            <option value="changePercentDesc">Change % high to low</option>
+            <option value="changePercentAsc">Change % low to high</option>
+            <option value="changeDesc">Change high to low</option>
+            <option value="priceDesc">Price high to low</option>
+            <option value="pairAsc">Pair A to Z</option>
+          </select>
+        </label>
+        <label>
+          Show
+          <select id="limitSelect">
+            <option value="8">Top 8</option>
+            <option value="12" selected>Top 12</option>
+            <option value="20">Top 20</option>
+            <option value="999">All pairs</option>
+          </select>
+        </label>
+        <button id="refreshBtn" type="button">Refresh</button>
+        <label class="switch-row">
+          <input id="autoRefreshInput" type="checkbox" checked />
+          Auto refresh
+        </label>
+      </section>
+
+      <section class="summary-grid" aria-label="Market summary">
+        <article class="summary-card">
+          <span>Strongest</span>
+          <strong id="strongestPair">--</strong>
+          <small id="strongestMove">--</small>
+        </article>
+        <article class="summary-card">
+          <span>Weakest</span>
+          <strong id="weakestPair">--</strong>
+          <small id="weakestMove">--</small>
+        </article>
+        <article class="summary-card">
+          <span>Pairs loaded</span>
+          <strong id="pairCount">--</strong>
+          <small id="refreshStatus">Waiting for data</small>
+        </article>
+      </section>
+
+      <section class="movers-grid">
+        <section class="mover-panel">
+          <div class="panel-title">
+            <h2>Top Gainers</h2>
+            <span>Positive change %</span>
           </div>
-          <div class="status-pill" id="rolePill">Participant</div>
-        </header>
-
-        <section class="stage">
-          <div class="screen-stage">
-            <video id="screenVideo" autoplay playsinline></video>
-            <div id="screenPlaceholder" class="screen-placeholder">
-              <span>Screen share will appear here. Share a screen or window and keep the source visible for the smoothest playback.</span>
-            </div>
-            <div id="remoteCursor" class="remote-cursor hidden" aria-hidden="true"></div>
-          </div>
-          <div class="screen-audio-controls">
-            <button id="screenMuteBtn" type="button" class="secondary">Screen sound on</button>
-            <label>
-              Screen volume
-              <input id="screenVolumeInput" type="range" min="0" max="1" step="0.05" value="1" />
-            </label>
-          </div>
-          <div id="shareStrip" class="share-strip hidden" aria-label="Shared screens"></div>
-
-          <aside class="side-panel">
-            <div>
-              <h3>Controls</h3>
-              <div class="controls">
-                <button id="cameraBtn" type="button" class="secondary">Camera off</button>
-                <button id="micBtn" type="button">Mic on</button>
-                <button id="shareBtn" type="button">Share screen</button>
-                <button id="requestControlBtn" type="button">Request control</button>
-              </div>
-            </div>
-
-            <div>
-              <h3>Audio mode</h3>
-              <div class="audio-mode">
-                <label class="mode-row">
-                  <input id="directVoiceInput" type="radio" name="audioMode" value="direct" checked />
-                  Direct voice
-                </label>
-                <label class="mode-row">
-                  <input id="pushToTalkInput" type="radio" name="audioMode" value="push" />
-                  Push to talk
-                </label>
-                <label>
-                  Push key
-                  <input id="pushKeyInput" autocomplete="off" maxlength="1" value="U" />
-                </label>
-                <p id="pushStatus" class="participant-meta">Mic opens automatically.</p>
-              </div>
-            </div>
-
-            <div id="hostPanel" class="host-panel hidden">
-              <h3>Participant control</h3>
-              <div id="controlRequests" class="request-list"></div>
-              <div id="participantList" class="participant-list"></div>
-            </div>
-
-            <div>
-              <h3>Activity</h3>
-              <div id="activityLog" class="activity-log"></div>
-            </div>
-          </aside>
+          <div id="gainersList" class="quote-list"></div>
         </section>
 
-        <section>
-          <h3>Participants</h3>
-          <div id="videoGrid" class="participant-roster"></div>
+        <section class="mover-panel">
+          <div class="panel-title">
+            <h2>Top Losers</h2>
+            <span>Negative change %</span>
+          </div>
+          <div id="losersList" class="quote-list"></div>
         </section>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-title">
+          <h2>All Forex Pairs</h2>
+          <span id="tableHint">Sorted by change %</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pair</th>
+                <th>Price</th>
+                <th>Change</th>
+                <th>Change %</th>
+                <th>Bid</th>
+                <th>Ask</th>
+                <th>Day Range</th>
+                <th>Market</th>
+              </tr>
+            </thead>
+            <tbody id="quoteTable"></tbody>
+          </table>
+        </div>
       </section>
     </main>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>
