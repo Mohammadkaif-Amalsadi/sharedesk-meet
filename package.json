@@ -1,7 +1,7 @@
 {
-  "name": "forex-movers-dashboard",
+  "name": "resume-generator-studio",
   "version": "1.0.0",
-  "description": "A Render-ready forex movers dashboard for top gaining and losing currency pairs.",
+  "description": "A Render-ready resume generator and editor with AI-ready prompt building and PDF export.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

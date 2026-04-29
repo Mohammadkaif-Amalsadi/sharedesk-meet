@@ -1,257 +1,280 @@
-const searchInput = document.querySelector("#searchInput");
-const sortSelect = document.querySelector("#sortSelect");
-const limitSelect = document.querySelector("#limitSelect");
-const refreshBtn = document.querySelector("#refreshBtn");
-const autoRefreshInput = document.querySelector("#autoRefreshInput");
-const gainersList = document.querySelector("#gainersList");
-const losersList = document.querySelector("#losersList");
-const quoteTable = document.querySelector("#quoteTable");
-const sourceName = document.querySelector("#sourceName");
-const sourceLink = document.querySelector("#sourceLink");
-const lastUpdated = document.querySelector("#lastUpdated");
-const strongestPair = document.querySelector("#strongestPair");
-const strongestMove = document.querySelector("#strongestMove");
-const weakestPair = document.querySelector("#weakestPair");
-const weakestMove = document.querySelector("#weakestMove");
-const pairCount = document.querySelector("#pairCount");
-const refreshStatus = document.querySelector("#refreshStatus");
-const tableHint = document.querySelector("#tableHint");
+const modeInputs = Array.from(document.querySelectorAll("input[name='resumeMode']"));
+const generateBtn = document.querySelector("#generateBtn");
+const copyPromptBtn = document.querySelector("#copyPromptBtn");
+const exportPdfBtn = document.querySelector("#exportPdfBtn");
+const copyJsonBtn = document.querySelector("#copyJsonBtn");
+const statusText = document.querySelector("#statusText");
+const existingResumeWrap = document.querySelector("#existingResumeWrap");
+const jobDescriptionWrap = document.querySelector("#jobDescriptionWrap");
 
-let quotes = [];
-let refreshTimer = null;
-
-const FLAG_CODES = {
-  AUD: "au",
-  CAD: "ca",
-  CHF: "ch",
-  DKK: "dk",
-  EUR: "eu",
-  GBP: "gb",
-  HKD: "hk",
-  JPY: "jp",
-  MXN: "mx",
-  NOK: "no",
-  NZD: "nz",
-  PLN: "pl",
-  SEK: "se",
-  SGD: "sg",
-  TRY: "tr",
-  USD: "us",
-  ZAR: "za"
+const inputs = {
+  fullName: document.querySelector("#fullNameInput"),
+  jobTitle: document.querySelector("#jobTitleInput"),
+  company: document.querySelector("#companyInput"),
+  years: document.querySelector("#yearsInput"),
+  email: document.querySelector("#emailInput"),
+  phone: document.querySelector("#phoneInput"),
+  location: document.querySelector("#locationInput"),
+  linkedin: document.querySelector("#linkedinInput"),
+  portfolio: document.querySelector("#portfolioInput"),
+  headline: document.querySelector("#headlineInput"),
+  strengths: document.querySelector("#strengthsInput"),
+  achievements: document.querySelector("#achievementsInput"),
+  existingResume: document.querySelector("#existingResumeInput"),
+  jobDescription: document.querySelector("#jobDescriptionInput")
 };
 
-const SORT_LABELS = {
-  changePercentDesc: "Sorted by change % high to low",
-  changePercentAsc: "Sorted by change % low to high",
-  changeDesc: "Sorted by raw change",
-  priceDesc: "Sorted by price",
-  pairAsc: "Sorted A to Z"
+const outputs = {
+  header: document.querySelector("#headerOutput"),
+  summary: document.querySelector("#summaryOutput"),
+  skills: document.querySelector("#skillsOutput"),
+  experience: document.querySelector("#experienceOutput"),
+  projects: document.querySelector("#projectsOutput"),
+  education: document.querySelector("#educationOutput"),
+  certifications: document.querySelector("#certificationsOutput"),
+  prompt: document.querySelector("#promptOutput")
 };
 
-searchInput.addEventListener("input", render);
-sortSelect.addEventListener("change", render);
-limitSelect.addEventListener("change", render);
-refreshBtn.addEventListener("click", () => loadQuotes({ force: true }));
-autoRefreshInput.addEventListener("change", configureAutoRefresh);
+let latestPayload = null;
 
-loadQuotes({ force: true });
-configureAutoRefresh();
+modeInputs.forEach((input) => {
+  input.addEventListener("change", updateMode);
+});
 
-async function loadQuotes({ force = false } = {}) {
-  refreshBtn.disabled = true;
-  refreshStatus.textContent = force ? "Refreshing..." : "Updating...";
+generateBtn.addEventListener("click", generateResumeDraft);
+copyPromptBtn.addEventListener("click", () => copyText(outputs.prompt.value, "AI prompt copied."));
+copyJsonBtn.addEventListener("click", () => copyText(JSON.stringify(buildExportObject(), null, 2), "Resume JSON copied."));
+exportPdfBtn.addEventListener("click", exportPdf);
+
+updateMode();
+
+async function generateResumeDraft() {
+  statusText.textContent = "Generating sections...";
+  generateBtn.disabled = true;
 
   try {
-    const response = await fetch(`/api/forex${force ? `?t=${Date.now()}` : ""}`);
+    const response = await fetch("/api/resume-prompt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildRequestPayload())
+    });
+
     if (!response.ok) {
       throw new Error(`Request failed with ${response.status}`);
     }
 
-    const payload = await response.json();
-    quotes = payload.quotes || [];
-    sourceName.textContent = payload.source || "Market data";
-    sourceLink.href = payload.sourceUrl || "https://finance.yahoo.com/markets/currencies/";
-    lastUpdated.textContent = `Updated ${formatTime(payload.fetchedAt)}`;
-    pairCount.textContent = String(payload.count || quotes.length);
-    refreshStatus.textContent = `Refreshes every ${Math.round((payload.refreshMs || 15000) / 1000)}s`;
-    render();
+    latestPayload = await response.json();
+    fillOutputs(latestPayload.sections);
+    outputs.prompt.value = latestPayload.prompt;
+    statusText.textContent = "Draft ready. Edit any section before saving as PDF.";
   } catch (error) {
-    refreshStatus.textContent = "Could not load quotes";
-    gainersList.innerHTML = errorCard(error.message);
-    losersList.innerHTML = errorCard(error.message);
+    statusText.textContent = `Could not generate sections. ${error.message}`;
   } finally {
-    refreshBtn.disabled = false;
+    generateBtn.disabled = false;
   }
 }
 
-function configureAutoRefresh() {
-  clearInterval(refreshTimer);
-
-  if (autoRefreshInput.checked) {
-    refreshTimer = setInterval(() => loadQuotes(), 15000);
-  }
+function buildRequestPayload() {
+  return {
+    mode: currentMode(),
+    jobTitle: inputs.jobTitle.value,
+    targetCompany: inputs.company.value,
+    contact: {
+      fullName: inputs.fullName.value,
+      email: inputs.email.value,
+      phone: inputs.phone.value,
+      location: inputs.location.value,
+      linkedin: inputs.linkedin.value,
+      portfolio: inputs.portfolio.value
+    },
+    profile: {
+      years: inputs.years.value,
+      headline: inputs.headline.value,
+      strengths: splitLines(inputs.strengths.value),
+      achievements: splitLines(inputs.achievements.value)
+    },
+    existingResume: inputs.existingResume.value,
+    jobDescription: inputs.jobDescription.value,
+    sections: {
+      summary: outputs.summary.value,
+      skills: splitLines(outputs.skills.value),
+      experience: splitLines(outputs.experience.value),
+      projects: splitLines(outputs.projects.value),
+      education: splitLines(outputs.education.value),
+      certifications: splitLines(outputs.certifications.value)
+    }
+  };
 }
 
-function render() {
-  const filtered = filterQuotes(quotes);
-  const sorted = sortQuotes(filtered);
-  const limit = Number(limitSelect.value);
-  const visible = sorted.slice(0, limit);
-  const gainers = [...filtered]
-    .filter((quote) => quote.changePercent > 0)
-    .sort((a, b) => b.changePercent - a.changePercent)
-    .slice(0, Math.min(limit, 10));
-  const losers = [...filtered]
-    .filter((quote) => quote.changePercent < 0)
-    .sort((a, b) => a.changePercent - b.changePercent)
-    .slice(0, Math.min(limit, 10));
+function fillOutputs(sections) {
+  const headerLines = [
+    sections.header.fullName,
+    sections.header.jobTitle && `Target role: ${sections.header.jobTitle}`,
+    sections.header.targetCompany && `Target company: ${sections.header.targetCompany}`,
+    [sections.header.email, sections.header.phone, sections.header.location].filter(Boolean).join(" | "),
+    [sections.header.linkedin, sections.header.portfolio].filter(Boolean).join(" | ")
+  ].filter(Boolean);
 
-  gainersList.innerHTML = gainers.length ? gainers.map(quoteCard).join("") : emptyCard("No gainers in this filter.");
-  losersList.innerHTML = losers.length ? losers.map(quoteCard).join("") : emptyCard("No losers in this filter.");
-  quoteTable.innerHTML = visible.map(tableRow).join("");
-  tableHint.textContent = SORT_LABELS[sortSelect.value] || "Sorted";
-
-  const strongest = gainers[0];
-  const weakest = losers[0];
-  strongestPair.textContent = strongest?.pair || "--";
-  strongestMove.textContent = strongest ? formatPercent(strongest.changePercent) : "--";
-  weakestPair.textContent = weakest?.pair || "--";
-  weakestMove.textContent = weakest ? formatPercent(weakest.changePercent) : "--";
+  outputs.header.value = headerLines.join("\n");
+  outputs.summary.value = sections.summary || "";
+  outputs.skills.value = joinLines(sections.skills);
+  outputs.experience.value = joinLines(sections.experience);
+  outputs.projects.value = joinLines(sections.projects);
+  outputs.education.value = joinLines(sections.education);
+  outputs.certifications.value = joinLines(sections.certifications);
 }
 
-function filterQuotes(items) {
-  const query = searchInput.value.trim().toLowerCase();
-  if (!query) {
-    return items;
-  }
+function currentMode() {
+  return modeInputs.find((input) => input.checked)?.value || "scratch";
+}
 
-  return items.filter((quote) => {
-    return [
-      quote.symbol,
-      quote.pair,
-      quote.base,
-      quote.quote,
-      quote.name
-    ].some((value) => String(value || "").toLowerCase().includes(query));
+function updateMode() {
+  const existingMode = currentMode() === "existing";
+  existingResumeWrap.classList.toggle("hidden", !existingMode);
+  jobDescriptionWrap.classList.toggle("job-desc-wide", !existingMode);
+  document.querySelectorAll(".toggle-card").forEach((card) => {
+    card.classList.toggle("active", card.querySelector("input").checked);
   });
 }
 
-function sortQuotes(items) {
-  const sorted = [...items];
-
-  switch (sortSelect.value) {
-    case "changePercentAsc":
-      return sorted.sort((a, b) => a.changePercent - b.changePercent);
-    case "changeDesc":
-      return sorted.sort((a, b) => b.change - a.change);
-    case "priceDesc":
-      return sorted.sort((a, b) => b.price - a.price);
-    case "pairAsc":
-      return sorted.sort((a, b) => a.pair.localeCompare(b.pair));
-    case "changePercentDesc":
-    default:
-      return sorted.sort((a, b) => b.changePercent - a.changePercent);
-  }
+function splitLines(value) {
+  return String(value || "")
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-function quoteCard(quote) {
-  const tone = quote.changePercent >= 0 ? "gain" : "loss";
-  const chartUrl = tradingViewUrl(quote);
+function joinLines(items) {
+  return Array.isArray(items) ? items.join("\n") : "";
+}
+
+function copyText(text, successMessage) {
+  if (!text) {
+    statusText.textContent = "Nothing to copy yet.";
+    return;
+  }
+
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      statusText.textContent = successMessage;
+    })
+    .catch(() => {
+      statusText.textContent = "Clipboard access failed.";
+    });
+}
+
+function buildExportObject() {
+  return {
+    generatedAt: latestPayload?.generatedAt || new Date().toISOString(),
+    header: outputs.header.value,
+    summary: outputs.summary.value,
+    skills: splitLines(outputs.skills.value),
+    experience: splitLines(outputs.experience.value),
+    projects: splitLines(outputs.projects.value),
+    education: splitLines(outputs.education.value),
+    certifications: splitLines(outputs.certifications.value),
+    prompt: outputs.prompt.value
+  };
+}
+
+function exportPdf() {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=980,height=1280");
+  if (!printWindow) {
+    statusText.textContent = "Popup blocked. Allow popups to save as PDF.";
+    return;
+  }
+
+  const printable = buildPrintableResume();
+  printWindow.document.write(printable);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function buildPrintableResume() {
+  const data = buildExportObject();
 
   return `
-    <article class="quote-card ${tone}">
-      <div class="pair-flags">${flagImg(quote.base)}${flagImg(quote.quote)}</div>
-      <div>
-        <strong>${quote.pair}</strong>
-        <span>${quote.name}</span>
-      </div>
-      <div class="quote-price">
-        <strong>${formatPrice(quote.price)}</strong>
-        <span>${formatPercent(quote.changePercent)}</span>
-      </div>
-      <a class="chart-link" href="${chartUrl}" target="_blank" rel="noreferrer" aria-label="Open ${quote.pair} chart on TradingView">[ ]</a>
-    </article>
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <title>Resume PDF</title>
+        <style>
+          body {
+            margin: 0;
+            padding: 36px;
+            color: #101418;
+            font-family: Inter, Arial, sans-serif;
+            background: #ffffff;
+          }
+          h1, h2, p { margin: 0; }
+          h1 { font-size: 28px; margin-bottom: 6px; }
+          .meta { color: #4b5563; margin-bottom: 20px; line-height: 1.5; }
+          section { margin-bottom: 20px; }
+          h2 {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 4px;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          ul {
+            margin: 8px 0 0 18px;
+            padding: 0;
+            line-height: 1.55;
+          }
+          .line-list div { margin: 5px 0; line-height: 1.55; }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>${escapeHtml(firstLine(data.header) || "Resume")}</h1>
+          <div class="meta">${escapeHtml(otherLines(data.header).join(" · "))}</div>
+        </header>
+        ${printSection("Professional Summary", [data.summary])}
+        ${printSection("Skills", data.skills)}
+        ${printSection("Experience", data.experience)}
+        ${printSection("Projects", data.projects)}
+        ${printSection("Education", data.education)}
+        ${printSection("Certifications", data.certifications)}
+      </body>
+    </html>
   `;
 }
 
-function tableRow(quote) {
-  const tone = quote.changePercent >= 0 ? "gain-text" : "loss-text";
+function printSection(title, items) {
+  const cleanItems = items.filter(Boolean);
+  if (!cleanItems.length) {
+    return "";
+  }
 
   return `
-    <tr>
-      <td>
-        <div class="table-pair">
-          <span class="pair-flags">${flagImg(quote.base)}${flagImg(quote.quote)}</span>
-          <strong>${quote.pair}</strong>
-        </div>
-      </td>
-      <td>${formatPrice(quote.price)}</td>
-      <td class="${tone}">${formatSigned(quote.change)}</td>
-      <td class="${tone}">${formatPercent(quote.changePercent)}</td>
-      <td>${formatPrice(quote.previousClose)}</td>
-      <td>${formatPrice(quote.open)}</td>
-      <td>${formatPrice(quote.low)} - ${formatPrice(quote.high)}</td>
-      <td>${quote.marketState || "UNKNOWN"}</td>
-    </tr>
+    <section>
+      <h2>${escapeHtml(title)}</h2>
+      <div class="line-list">
+        ${cleanItems.map((item) => `<div>${escapeHtml(item)}</div>`).join("")}
+      </div>
+    </section>
   `;
 }
 
-function flagImg(currency) {
-  const code = FLAG_CODES[currency];
-  if (!code) {
-    return `<span class="flag-fallback">${currency?.[0] || "?"}</span>`;
-  }
-
-  return `<img src="https://flagcdn.com/w40/${code}.png" alt="${currency} flag" loading="lazy" />`;
+function firstLine(value) {
+  return String(value || "").split(/\r?\n/)[0] || "";
 }
 
-function formatPrice(value) {
-  if (!Number.isFinite(value)) {
-    return "--";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: value >= 10 ? 2 : 4,
-    maximumFractionDigits: value >= 10 ? 4 : 6
-  }).format(value);
+function otherLines(value) {
+  return String(value || "").split(/\r?\n/).slice(1).filter(Boolean);
 }
 
-function formatPercent(value) {
-  if (!Number.isFinite(value)) {
-    return "--";
-  }
-
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function formatSigned(value) {
-  if (!Number.isFinite(value)) {
-    return "--";
-  }
-
-  return `${value >= 0 ? "+" : ""}${formatPrice(value)}`;
-}
-
-function formatTime(value) {
-  if (!value) {
-    return "--";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  }).format(new Date(value));
-}
-
-function tradingViewUrl(quote) {
-  return `https://www.tradingview.com/chart/?symbol=FX:${quote.base}${quote.quote}`;
-}
-
-function emptyCard(message) {
-  return `<div class="empty-card">${message}</div>`;
-}
-
-function errorCard(message) {
-  return `<div class="empty-card error">Market data unavailable. ${message}</div>`;
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

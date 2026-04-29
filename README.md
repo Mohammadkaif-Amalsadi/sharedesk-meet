@@ -1,32 +1,32 @@
-# Forex Movers Dashboard
+# Resume Generator Studio
 
-A Render-ready forex dashboard that shows top gaining and losing currency pairs with search, sorting, auto-refresh, and an all-pairs table.
+A Render-ready resume builder for two flows:
 
-## Data Source
+- start from scratch
+- improve an existing resume
 
-The app fetches currency quotes server-side from `fxapi.app` and refreshes the dashboard every 5 minutes by default.
+The app turns your inputs plus a job description into:
 
-Source page:
+- an AI-ready resume-writing prompt
+- editable resume sections
+- a printable PDF layout
 
-```text
-https://fxapi.app/
-```
+## What It Does
 
-`fxapi.app` provides no-key JSON currency rates and states that rates are updated every 5 minutes from central bank and financial data sources. The dashboard computes pair movement by comparing the latest rate with recent historical/reference rates from the same provider.
-
-For institutional-grade tick-by-tick FX, connect a paid provider such as Twelve Data Forex API v2, Finnhub, OANDA, Polygon, or a broker feed.
-
-## Features
-
-- Top forex gainers
-- Top forex losers
-- Search by pair, symbol, or currency
-- Sort by change %, raw change, price, or pair name
-- Adjustable row limit
-- Auto refresh toggle
-- Server-side quote proxy to avoid browser CORS issues
-- 5-minute quote cache to match the no-key provider update cadence
-- Render-ready `render.yaml`
+- Collects candidate details, strengths, achievements, and target role
+- Accepts an existing resume paste for rewrite mode
+- Accepts a job description
+- Builds structured editable sections:
+  - Header
+  - Summary
+  - Skills
+  - Experience
+  - Projects
+  - Education
+  - Certifications
+- Generates a reusable AI prompt for tools like ChatGPT or other LLMs
+- Lets you copy JSON or the prompt
+- Saves the result as PDF through the browser print flow
 
 ## Run Locally
 
@@ -47,16 +47,22 @@ Health check:
 http://localhost:3000/health
 ```
 
-Quotes API:
+## API
 
-```text
-http://localhost:3000/api/forex
-```
+### `POST /api/resume-prompt`
+
+Accepts resume-generation inputs and returns:
+
+- `prompt`
+- `sections`
+- `generatedAt`
+
+The backend does not call an external AI model directly. It prepares a structured AI-ready prompt and starter content so the site works without API keys.
 
 ## Deploy On Render
 
 1. Push the project to GitHub.
-2. In Render, create a Web Service from the repository.
+2. Create a Render Web Service from the repo.
 3. Use:
 
 ```text
@@ -66,22 +72,10 @@ Start command: npm start
 Health check path: /health
 ```
 
-Render provides `PORT` automatically.
-
-## Configuration
-
-Optional cache interval:
-
-```text
-QUOTE_CACHE_MS=300000
-```
-
-Lower values refresh more aggressively. Higher values reduce upstream requests.
-
 ## Files
 
-- `server.js` - Express app, health endpoint, forex quote API proxy
-- `public/index.html` - dashboard markup
-- `public/app.js` - sorting, filtering, refresh, rendering
-- `public/styles.css` - responsive dashboard styling
-- `render.yaml` - Render deployment config
+- `server.js` - Express server, health route, resume prompt API
+- `public/index.html` - resume generator interface
+- `public/app.js` - form logic, prompt generation flow, PDF export
+- `public/styles.css` - responsive editor styling
+- `render.yaml` - Render config

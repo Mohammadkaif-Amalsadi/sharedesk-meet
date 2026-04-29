@@ -3,113 +3,183 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forex Movers</title>
+    <title>Resume Generator Studio</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="dashboard-header">
-        <div>
-          <p class="eyebrow">Forex Movers</p>
-          <h1>Top gaining and losing currency pairs.</h1>
-          <p class="lede">Live market snapshots, sorted the way you trade them.</p>
-        </div>
-        <div class="source-card">
-          <span id="sourceName">Source loading</span>
-          <strong id="lastUpdated">--</strong>
-          <a id="sourceLink" href="https://finance.yahoo.com/markets/currencies/" target="_blank" rel="noreferrer">View source</a>
-        </div>
-      </section>
-
-      <section class="toolbar" aria-label="Dashboard controls">
-        <label>
-          Search
-          <input id="searchInput" type="search" placeholder="EUR, USD/JPY, GBP..." autocomplete="off" />
-        </label>
-        <label>
-          Sort by
-          <select id="sortSelect">
-            <option value="changePercentDesc">Change % high to low</option>
-            <option value="changePercentAsc">Change % low to high</option>
-            <option value="changeDesc">Change high to low</option>
-            <option value="priceDesc">Price high to low</option>
-            <option value="pairAsc">Pair A to Z</option>
-          </select>
-        </label>
-        <label>
-          Show
-          <select id="limitSelect">
-            <option value="8">Top 8</option>
-            <option value="12" selected>Top 12</option>
-            <option value="20">Top 20</option>
-            <option value="999">All pairs</option>
-          </select>
-        </label>
-        <button id="refreshBtn" type="button">Refresh</button>
-        <label class="switch-row">
-          <input id="autoRefreshInput" type="checkbox" checked />
-          Auto refresh
-        </label>
-      </section>
-
-      <section class="summary-grid" aria-label="Market summary">
-        <article class="summary-card">
-          <span>Strongest</span>
-          <strong id="strongestPair">--</strong>
-          <small id="strongestMove">--</small>
-        </article>
-        <article class="summary-card">
-          <span>Weakest</span>
-          <strong id="weakestPair">--</strong>
-          <small id="weakestMove">--</small>
-        </article>
-        <article class="summary-card">
-          <span>Pairs loaded</span>
-          <strong id="pairCount">--</strong>
-          <small id="refreshStatus">Waiting for data</small>
-        </article>
-      </section>
-
-      <section class="movers-grid">
-        <section class="mover-panel">
-          <div class="panel-title">
-            <h2>Top Gainers</h2>
-            <span>Positive change %</span>
+      <section class="workspace">
+        <section class="editor-pane">
+          <div class="pane-head">
+            <div>
+              <p class="eyebrow">Resume Generator Studio</p>
+              <h1>Build a resume from scratch or reshape an existing one for a job description.</h1>
+            </div>
+            <img
+              class="pane-image"
+              src="https://images.unsplash.com/photo-1516321165247-4aa89a48be28?auto=format&fit=crop&w=1200&q=80"
+              alt="Resume editing workspace on a laptop"
+            />
           </div>
-          <div id="gainersList" class="quote-list"></div>
+
+          <section class="mode-row">
+            <label class="toggle-card active">
+              <input type="radio" name="resumeMode" value="scratch" checked />
+              Start from scratch
+            </label>
+            <label class="toggle-card">
+              <input type="radio" name="resumeMode" value="existing" />
+              Improve existing resume
+            </label>
+          </section>
+
+          <section class="form-grid">
+            <label>
+              Full name
+              <input id="fullNameInput" placeholder="Amina Khan" />
+            </label>
+            <label>
+              Target job title
+              <input id="jobTitleInput" placeholder="Frontend Engineer" />
+            </label>
+            <label>
+              Target company
+              <input id="companyInput" placeholder="Example Labs" />
+            </label>
+            <label>
+              Years of experience
+              <input id="yearsInput" placeholder="5 years" />
+            </label>
+            <label>
+              Email
+              <input id="emailInput" placeholder="amina@example.com" />
+            </label>
+            <label>
+              Phone
+              <input id="phoneInput" placeholder="+91 98XXXXXX10" />
+            </label>
+            <label>
+              Location
+              <input id="locationInput" placeholder="Bengaluru, India" />
+            </label>
+            <label>
+              LinkedIn
+              <input id="linkedinInput" placeholder="linkedin.com/in/amina" />
+            </label>
+            <label>
+              Portfolio
+              <input id="portfolioInput" placeholder="amina.dev" />
+            </label>
+            <label class="full-width">
+              Professional headline
+              <input id="headlineInput" placeholder="Frontend engineer focused on product quality, design systems, and fast delivery." />
+            </label>
+          </section>
+
+          <section class="split-grid">
+            <label>
+              Career strengths
+              <textarea id="strengthsInput" placeholder="React, TypeScript, accessibility, performance, design systems"></textarea>
+            </label>
+            <label>
+              Key achievements
+              <textarea id="achievementsInput" placeholder="Reduced bundle size by 32%, launched self-serve onboarding, led migration to TypeScript"></textarea>
+            </label>
+          </section>
+
+          <section class="split-grid">
+            <label class="existing-only hidden" id="existingResumeWrap">
+              Existing resume text
+              <textarea id="existingResumeInput" placeholder="Paste your current resume here"></textarea>
+            </label>
+            <label class="job-desc-wide" id="jobDescriptionWrap">
+              Job description
+              <textarea id="jobDescriptionInput" placeholder="Paste the full job description here"></textarea>
+            </label>
+          </section>
+
+          <div class="action-row">
+            <button id="generateBtn" type="button">Generate sections</button>
+            <button id="copyPromptBtn" type="button" class="secondary">Copy AI prompt</button>
+            <button id="exportPdfBtn" type="button" class="secondary">Save PDF</button>
+          </div>
         </section>
 
-        <section class="mover-panel">
-          <div class="panel-title">
-            <h2>Top Losers</h2>
-            <span>Negative change %</span>
+        <section class="output-pane">
+          <div class="pane-toolbar">
+            <div>
+              <h2>Editable Resume Sections</h2>
+              <p id="statusText">Fill in the inputs, then generate the draft.</p>
+            </div>
+            <button id="copyJsonBtn" type="button" class="secondary">Copy JSON</button>
           </div>
-          <div id="losersList" class="quote-list"></div>
-        </section>
-      </section>
 
-      <section class="table-panel">
-        <div class="panel-title">
-          <h2>All Forex Pairs</h2>
-          <span id="tableHint">Sorted by change %</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Pair</th>
-                <th>Price</th>
-                <th>Change</th>
-                <th>Change %</th>
-                <th>Previous</th>
-                <th>Open</th>
-                <th>Day Range</th>
-                <th>Market</th>
-              </tr>
-            </thead>
-            <tbody id="quoteTable"></tbody>
-          </table>
-        </div>
+          <section class="section-stack">
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Header</h3>
+                <span>Contact and target role</span>
+              </div>
+              <textarea id="headerOutput" class="short-output"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Professional Summary</h3>
+                <span>2 to 4 lines</span>
+              </div>
+              <textarea id="summaryOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Skills</h3>
+                <span>One skill per line</span>
+              </div>
+              <textarea id="skillsOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Experience</h3>
+                <span>One bullet per line</span>
+              </div>
+              <textarea id="experienceOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Projects</h3>
+                <span>One bullet per line</span>
+              </div>
+              <textarea id="projectsOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Education</h3>
+                <span>One line per entry</span>
+              </div>
+              <textarea id="educationOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>Certifications</h3>
+                <span>One line per entry</span>
+              </div>
+              <textarea id="certificationsOutput"></textarea>
+            </article>
+
+            <article class="resume-card">
+              <div class="card-head">
+                <h3>AI Prompt</h3>
+                <span>Use this with your AI tool</span>
+              </div>
+              <textarea id="promptOutput"></textarea>
+            </article>
+          </section>
+        </section>
       </section>
     </main>
 

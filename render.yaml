@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: forex-movers-dashboard
+    name: resume-generator-studio
     env: node
     plan: free
     buildCommand: npm install
